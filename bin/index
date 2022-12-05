@@ -1,7 +1,7 @@
 #!/bin/bash
 
-set -Eeuo pipefail
-set -x
+# set -Eeuo pipefail
+# set -x
 
 usage() {
     echo "Usage: $0 (start|stop|status|restart)"

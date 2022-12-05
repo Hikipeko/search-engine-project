@@ -4,7 +4,7 @@ set -Eeuo pipefail
 set -x
 
 usage() {
-    echo "Usage: $0 (create|destroy|reset|start|stop|status|restart)"
+    echo "Usage: $0 (create|destroy|reset|)"
 }
 if [ $# -ne 1 ]; then
     usage
@@ -27,44 +27,6 @@ case $1 in
     rm -f var/search.sqlite3
     mkdir -p var/
     sqlite3 var/search.sqlite3 < search_server/search/sql/search.sql
-    ;;
-"start")
-    if [ -f var/search.sqlite3 ]; then
-        echo "Error: can't find search database var/search.sqlite3"
-        exit 1
-    fi
-    echo "starting search server ..."
-    mkdir -p var/log
-    rm -f var/log/search.log
-    flask --app search run --host 0.0.0.0 --port 8000 &> var/log/search.log &
-    ;;
-
-"stop")
-    echo "stopping index server ..."
-    pkill -f "flask --app index run --host 0.0.0.0 --port 9000" || true
-    pkill -f "flask --app index run --host 0.0.0.0 --port 9001" || true
-    pkill -f "flask --app index run --host 0.0.0.0 --port 9002" || true
-    ;;
-
-"status")
-    set +o pipefail
-    NPROCS=$(pgrep -f "flask --app index run --host 0.0.0.0 --port 900[0-2]" | wc -l)
-    set -o pipefail
-    if [ "$NPROCS" -eq 3 ]; then
-    echo "index server running"
-    exit
-    elif [ "$NPROCS" -eq 0 ]; then
-    echo "index server stopped"
-    exit 1
-    else
-    echo "index server error: found ${NPROCS} processes, expected 3"
-    exit 2
-    fi
-    ;;
-
-"restart")
-    ./bin/index stop
-    ./bin/index start
     ;;
 *)
     usage
