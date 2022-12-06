@@ -20,8 +20,15 @@ def show_index():
     connection = search.model.get_db()
     # query = ""
     # weight = 0.5
-    query = flask.request.args.get('q', type=str)
+    query = flask.request.args.get('q', default="", type=str)
     weight = flask.request.args.get('w', default=0.5, type=float)
+    context = {}
+    context['text'] = query
+    print(query)
+    context['weight'] = weight
+    if not query:
+        return flask.render_template("index.html", **context)
+    # if the query is not empty
     num_thread = len(search.app.config['SEARCH_INDEX_SEGMENT_API_URLS'])
     results = [[]] * num_thread
     threads = []
@@ -34,7 +41,6 @@ def show_index():
         thread.start()
     for thread in threads:
         thread.join()
-    context = {}
     num_results = sum(len(r) for r in results)
     if num_results > 0:
         merged_result = heapq.merge(
@@ -51,9 +57,6 @@ def show_index():
     else:
         # no index result found for this query
         pass
-    context['text'] = query
-    # print(context['text'])
-    context['weight'] = weight
     return flask.render_template("index.html", **context)
 
 
