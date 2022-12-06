@@ -66,42 +66,44 @@ def get_hits():
     if weight < 0. or weight > 1.:
         raise InvalidUsage('Bad Request', status_code=400)
 
-    # "+" automatically converted to " " in query
-    query = re.sub(r"[^a-zA-Z0-9 ]+", "", query)
-    query = query.casefold()
-    # convert to list of strings
-    query_words = query.split()
-    # eliminate stopwords
-    query_words = [word for word in query_words if word not in STOPWORDS]
+    query_words = []
+    if query is not None:
+        # "+" automatically converted to " " in query
+        query = re.sub(r"[^a-zA-Z0-9 ]+", "", query)
+        query = query.casefold()
+        # convert to list of strings
+        query_words = query.split()
+        # eliminate stopwords
+        query_words = [word for word in query_words if word not in STOPWORDS]
 
     # find hits:
     # set {hit_doc_id} = intersection of set {Qi_doc_id},
     # where Qi is the i-th entry of query words.
-    hit_docs = set()
-    if query_words[0] in WORD_OCCURENCE:
-        hit_docs = set(WORD_OCCURENCE[query_words[0]].keys())
-        idx = 1
-        while idx < len(query_words) and len(hit_docs) > 0:
-            # break if empty set
-            if query_words[idx] in WORD_OCCURENCE:
-                hit_docs = hit_docs & \
-                    set(WORD_OCCURENCE[query_words[idx]].keys())
-            else:  # intersection with empty set
-                hit_docs = set()
-            idx += 1
-
     context = {
         "hits": [],
     }
 
-    # compute score for each doc
-    query_tf = compute_freq(query_words)
-    for docid in hit_docs:
-        score = compute_score(query_words, query_tf, docid, weight)
-        context['hits'].append({"docid": docid, "score": score})
+    hit_docs = set()
+    if len(query_words) > 0:
+        if query_words[0] in WORD_OCCURENCE:
+            hit_docs = set(WORD_OCCURENCE[query_words[0]].keys())
+            idx = 1
+            while idx < len(query_words) and len(hit_docs) > 0:
+                # break if empty set
+                if query_words[idx] in WORD_OCCURENCE:
+                    hit_docs = hit_docs & \
+                        set(WORD_OCCURENCE[query_words[idx]].keys())
+                else:  # intersection with empty set
+                    hit_docs = set()
+                idx += 1
+        # compute score for each doc
+        query_tf = compute_freq(query_words)
+        for docid in hit_docs:
+            score = compute_score(query_words, query_tf, docid, weight)
+            context['hits'].append({"docid": docid, "score": score})
 
-    # sort with descending score
-    context['hits'].sort(key=(lambda elem: elem['score']), reverse=True)
+        # sort with descending score
+        context['hits'].sort(key=(lambda elem: elem['score']), reverse=True)
 
     # context['num_hits'] = len(context['hits']) # debug print
 
