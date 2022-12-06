@@ -30,16 +30,16 @@
             {% if results is defined %}
             {% for result in results%}
             <div>
-                {% if result.url is defined%}
-                <a class="doc_url" href="{{result.url}}">{{result.url}}</a>
+                {% if result.url == "" %}
+                <a class="doc_url">No url available</a>
                 {% else %}
-                <div>No url available</div>
+                <a class="doc_url" href="{{result.url}}">{{result.url}}</a>
                 {% endif %}
                 <div class="doc_title">{{result.title}}</div>
-                {% if result.summary is defined%}
-                <div class="doc_summary">{{result.summary}}</div>
+                {% if result.summary == "" %}
+                <div class="doc_summary">No summary available</div>
                 {% else %}
-                <div>No summary available</div>
+                <div class="doc_summary">{{result.summary}}</div>
                 {% endif %}
             </div>
             {% endfor %}
