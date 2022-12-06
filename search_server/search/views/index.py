@@ -22,11 +22,11 @@ def show_index():
     weight = 0.5
     query = flask.request.args.get('q')
     weight = flask.request.args.get('w')
-    num_thread = len(search.config.SEARCH_INDEX_SEGMENT_API_URLS)
+    num_thread = len(search.app.config['SEARCH_INDEX_SEGMENT_API_URLS'])
     results = [[]] * num_thread
     threads = []
     for idx in range(num_thread):
-        url = search.config.SEARCH_INDEX_SEGMENT_API_URLS[idx]
+        url = search.app.config['SEARCH_INDEX_SEGMENT_API_URLS'][idx]
         payload = {'q': query, 'w': weight}
         thread = threading.Thread(
             target=req_index_server, args=(idx, url, payload, results))
