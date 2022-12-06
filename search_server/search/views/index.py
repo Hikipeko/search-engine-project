@@ -8,65 +8,73 @@ import flask
 import search
 import requests
 import heapq
+import threading
+import time
+import itertools
 
-@search.app.route('/', methods=['POST'])
+@search.app.route('/', methods=['GET'])
 def show_index():
     """Display / route."""
     # Connect to database
     connection = search.model.get_db()
+    query = ""
+    weight = 0.5
+    query = flask.request.args.get('q')
+    weight = flask.request.args.get('w')
+    num_thread = len(search.config.SEARCH_INDEX_SEGMENT_API_URLS)
+    results = [[]] * num_thread
+    threads = []
 
-    quest = flask.request.form['q']
-    weight = flask.request.form['w']
-    results = []
-    for url in search.config.SEARCH_INDEX_SEGMENT_API_URLS:
-        resp = requests.get(url, q=quest, w=weight)
-        heapq.merge(results,resp.json['hits'])
-    
+    for idx in range(num_thread):
+        url = search.config.SEARCH_INDEX_SEGMENT_API_URLS[idx]
+        payload = {'q': query, 'w': weight}
+        thread = threading.Thread(target=reqIndexServer, args=(idx, url, payload, results))
+        threads.append(thread)
+        thread.start()
+    # for url in search.config.SEARCH_INDEX_SEGMENT_API_URLS:
+    #     payload = {'q': quest, 'w': weight}
+    #     thread = threading.Thread(target=reqIndexServer, args=(url,payload,results,))
+    #     threads.append(thread)
+    #     thread.start()
+        # print(resp.json)
+        # heapq.merge(results,resp.json)
+        
+    for thread in threads:
+        thread.join()
     context = {}
-    if results:
-        context['results'] = results[0:10]
-
-    
-
-
-
-    # # Check out config.json to see what data should be passed to the template
-    # logname = flask.session['logname']
-    # # add posts
-    # posts = connection.execute(
-    #     'SELECT postid, owner, users.filename AS owner_img_url, '
-    #     'posts.filename AS img_url, posts.created FROM posts '
-    #     'JOIN users ON users.username=posts.owner '
-    #     'WHERE users.username = ? OR users.username IN '
-    #     '(SELECT username2 FROM following WHERE username1 = ?) '
-    #     'ORDER by postid DESC',
-    #     (logname, logname)
-    # ).fetchall()
-    # # create a dictionary to trace likes of post by postid
-    # likes_count_list = connection.execute(
-    #     'SELECT postid, COUNT(*) AS cnt FROM likes GROUP BY postid'
-    # ).fetchall()
-    # likes_count = {}
-    # for item in likes_count_list:
-    #     likes_count[item['postid']] = item['cnt']
-    # past = arrow.utcnow()  # .shift(hours=-4)
-    # for post in posts:
-    #     # add timestamp as key
-    #     post['timestamp'] = past.humanize(
-    #         datetime.strptime(post["created"], '%Y-%m-%d %H:%M:%S'))
-    #     del post['created']
-    #     # add likes as key
-    #     like_cnt = likes_count.get(post["postid"])
-    #     post['likes'] = 0 if like_cnt is None else like_cnt
-    #     post['like_or_not'] = connection.execute(
-    #         'SELECT COUNT(*) AS cnt FROM likes WHERE postid = ? '
-    #         'AND owner = ? ', (post["postid"], logname)
-    #     ).fetchone()['cnt'] == 1
-    #     # add comments as key
-    #     post["comments"] = connection.execute(
-    #         'SELECT owner, text FROM comments WHERE postid = ? '
-    #         'ORDER BY commentid', (post["postid"],)
-    #     ).fetchall()
-    # # Add database info to context
-    # context = {"logname": logname, "posts": posts}
+    num_results = sum([len(r) for r in results])
+    if num_results > 0:
+        merged_result = heapq.merge(*results, key = lambda x: x['score'], reverse=True)
+        result_list = []
+        first_results = itertools.islice(merged_result, min(num_results, 10))
+        result_list = list(map(lambda x: fetchDocFromId(connection=connection, docid=x['docid']), first_results))
+        context['results'] = result_list
+        # print("context['results']")
+        # print(context['results'])
+    else:
+        # no index result found for this query
+        pass 
+    context['text'] = query
+    # print(context['text'])
+    context['weight'] = weight
     return flask.render_template("index.html", **context)
+
+
+def reqIndexServer(tid, url, payload, results):
+    try:
+        resp = requests.get(url, params=payload)
+    except Exception as e:
+        print("######### Error!")
+        print(e)
+        exit(-1)
+    results[tid] = resp.json()['hits']
+    print(f"thread-{tid} done: {len(results[tid])}")
+    time.sleep(0.1)
+
+def fetchDocFromId(connection, docid):
+    doc = connection.execute(
+    'SELECT * FROM Documents '
+    'WHERE docid = ?',
+    (docid, )
+    ).fetchone()
+    return doc

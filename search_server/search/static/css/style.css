@@ -63,6 +63,7 @@
   margin-top: 10px;
   padding-top: 10px;
 }
+
 .doc_url {
   font-family: Roboto;
   font-style: normal;
@@ -155,6 +156,7 @@ input[type=range]::-webkit-slider-runnable-track {
   border-radius: 2px;
   border: transparent;
 }
+
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -166,9 +168,11 @@ input[type=range]::-webkit-slider-thumb {
   border-radius: 50%;
   cursor: pointer;
 }
+
 input[type=range]:focus {
   outline: none;
 }
+
 input[type=range]:focus::-webkit-slider-runnable-track {
   background-color: #E72A90
 }
@@ -191,7 +195,7 @@ input[type=range]::-moz-range-thumb {
   cursor: pointer;
 }
 
-input[type=range]:-moz-focusring{
+input[type=range]:-moz-focusring {
   outline: 1px solid white;
   outline-offset: -1px;
 }
