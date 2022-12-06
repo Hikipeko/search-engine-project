@@ -18,10 +18,10 @@ def show_index():
     """Display / route."""
     # Connect to database
     connection = search.model.get_db()
-    query = ""
-    weight = 0.5
-    query = flask.request.args.get('q')
-    weight = flask.request.args.get('w')
+    # query = ""
+    # weight = 0.5
+    query = flask.request.args.get('q', type=str)
+    weight = flask.request.args.get('w', default=0.5, type=float)
     num_thread = len(search.app.config['SEARCH_INDEX_SEGMENT_API_URLS'])
     results = [[]] * num_thread
     threads = []
